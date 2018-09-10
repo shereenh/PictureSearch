@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    tools:context=".fragments.TextFragment">
+
+    <ImageView
+        android:id="@+id/background1"
+        android:src="@drawable/collage1"
+        android:scaleType="centerCrop"
+
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+    <ImageView
+        android:id="@+id/background2"
+        android:src="@drawable/collage1"
+        android:scaleType="centerCrop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <TextView
+        android:padding="10dp"
+        android:layout_margin="70dp"
+        android:textStyle="bold"
+        android:background="@color/flickrDGray"
+        android:gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/flickrPink"
+        android:textSize="32sp"
+        android:text="@string/search_flickr" />
+
+
+</RelativeLayout>

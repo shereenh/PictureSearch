@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">PictureSearch</string>
+    ß
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="empty_search">Please enter something to search for!</string>
+    <string name="not_found">No results found for </string>
+    <string name="no_more_results">No more results!</string>
+    <string name="permission_denied">Permission Denied! Cannot save to Gallery.</string>
+
+    <string name="show_more">Show More</string>
+    <string name="history">History</string>
+    <string name="search_flickr">Search for anything on the Flickr directory!</string>
+    <string name="purpose">Made by Shereen Hameed for The Rocket Science Group!</string>
+    <string name="click_history">Click on something to search for it again...</string>
+    <string name="cancel">Cancel</string>
+    <string name="clear">Clear</string>
+</resources>

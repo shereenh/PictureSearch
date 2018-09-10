@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".fragments.HistoryFragment">
+
+    <TextView
+        android:id="@+id/textTop"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:layout_alignParentTop="true"
+        android:textSize="24sp"
+        android:background="@color/flickrPink"
+        android:text="@string/click_history"/>
+
+    <View
+        android:id="@+id/lineView"
+        android:layout_below="@id/textTop"
+        android:background="@color/flickrBlue"
+        android:layout_width="match_parent"
+        android:layout_marginStart="5dp"
+        android:layout_marginEnd="5dp"
+        android:layout_height="1dp"/>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/recyclerViewHistory"
+        android:layout_below="@id/lineView"
+        android:layout_above="@+id/historyLinear"
+        android:background="@color/flickrDGray"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/historyLinear"
+        android:layout_above="@+id/lineViewBottom"
+        android:background="@color/flickrBlue"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/historyCancel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/cancel"/>
+
+        <Button
+            android:id="@+id/historyClear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/clear"/>
+
+    </LinearLayout>
+
+    <View
+        android:id="@+id/lineViewBottom"
+        android:layout_alignParentBottom="true"
+        android:background="@color/flickrPink"
+        android:layout_width="match_parent"
+        android:layout_marginStart="5dp"
+        android:layout_marginEnd="5dp"
+        android:layout_height="1dp"/>
+
+
+
+</RelativeLayout>
