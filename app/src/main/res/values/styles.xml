@@ -15,6 +15,7 @@
     <style name="imageElements">
         <item name="android:layout_width">25dp</item>
         <item name="android:layout_height">25dp</item>
+        <item name="android:scaleType">fitXY</item>
         <item name="android:layout_gravity">center_horizontal</item>
     </style>
 

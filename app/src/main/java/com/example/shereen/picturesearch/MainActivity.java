@@ -22,6 +22,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -53,7 +54,7 @@ public class MainActivity extends AppCompatActivity implements
     private static final String TAG = MainActivity.class.getSimpleName();
     public static final String SEARCH_PREFERENCES = "search_content";
     final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 9078;
-    ImageButton moreButton;
+    LinearLayout moreButton;
     ImageButton searchButton;
     EditText searchText;
     TopLevel globalTopLevel;
@@ -62,6 +63,8 @@ public class MainActivity extends AppCompatActivity implements
     String search;
 
     LinearLayout historyButton;
+    ImageView moreImage;
+    TextView moreText;
 
     PicturesFragment picturesFragment;
     TextFragment textFragment;
@@ -134,7 +137,8 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
-
+        moreImage = findViewById(R.id.moreImage);
+        moreText = findViewById(R.id.moreText);
         moreButton = findViewById(R.id.moreButton);
         moreButton.setOnClickListener(new android.view.View.OnClickListener() {
             @Override
@@ -245,9 +249,11 @@ public class MainActivity extends AppCompatActivity implements
         moreButton.setClickable(b);
         moreButton.setEnabled(b);
         if(b){
-            moreButton.setBackgroundResource(R.drawable.add);
+            moreImage.setBackgroundResource(R.drawable.add);
+            moreText.setTextColor(ContextCompat.getColor(this, R.color.flickrGray));
         }else{
-            moreButton.setBackgroundResource(R.drawable.add_dis);
+            moreImage.setBackgroundResource(R.drawable.add_dis);
+            moreText.setTextColor(ContextCompat.getColor(this, R.color.flickrBlue));
         }
 
     }
