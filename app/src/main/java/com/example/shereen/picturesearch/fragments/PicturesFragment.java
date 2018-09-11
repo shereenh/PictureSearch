@@ -1,12 +1,6 @@
 package com.example.shereen.picturesearch.fragments;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.AnimatorSet;
-import android.animation.ObjectAnimator;
 import android.content.Context;
-import android.graphics.Point;
-import android.graphics.Rect;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
@@ -14,8 +8,6 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.DecelerateInterpolator;
-import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
 //import com.bumptech.glide.request.RequestOptions;
@@ -26,12 +18,14 @@ import com.example.shereen.picturesearch.recycler.OnBottomReachedListener;
 import com.example.shereen.picturesearch.recycler.RecyclerItemClickListener;
 import com.example.shereen.picturesearch.entity.SingleImage;
 import com.example.shereen.picturesearch.gson.TopLevel;
+import com.example.shereen.picturesearch.tasks.AsyncResponse;
 import com.example.shereen.picturesearch.tasks.ImageArrayMaker;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PicturesFragment extends Fragment {
+public class PicturesFragment extends Fragment
+    implements AsyncResponse{
 
     View rootView;
 
@@ -42,10 +36,12 @@ public class PicturesFragment extends Fragment {
     private RecyclerView recyclerView;
     private ImageAdapter imageAdapter;
 
-    ImageArrayMaker imageArrayMaker;
+    ImageArrayMaker task;
 
-    int picturesPerPage = 66;
-    int counter = 1;
+    int picturesPerPage = 66; //blockSize in python code
+    int counter = 0;
+    int maxCounter = 0;
+    int lastPage =0;
 
 
     public PicturesFragment() {
@@ -59,20 +55,12 @@ public class PicturesFragment extends Fragment {
         // Inflate the layout for this fragment
         rootView = inflater.inflate(R.layout.fragment_pictures, container, false);
 
-
-
-//        RequestOptions requestOptions = new RequestOptions();
-//        requestOptions.placeholder(R.drawable.placeholder);
-//        requestOptions.error(R.drawable.imagenotfound);
-
         imageAdapter = new ImageAdapter(Glide.with(this), imageUrls);
         recyclerView = rootView.findViewById(R.id.recyclerView);
 
         recyclerView.setLayoutManager(new GridLayoutManager(getActivity(),3));
 
         recyclerView.setAdapter(imageAdapter);
-
-        imageArrayMaker = new ImageArrayMaker();
 
         System.out.println("Called again!");
 
@@ -105,20 +93,56 @@ public class PicturesFragment extends Fragment {
             @Override
             public void onBottomReached(int position) {
                 System.out.println("REACHED BOTTOM!!!");
-                if(++counter<6){
-                    System.out.println(counter + " not exceeded");
-                }else{
-                    //ask if want more
-                    System.out.println(counter + " exceeded");
+                counter++;
+                if(mListener != null){
+                    if(counter==maxCounter){
+                        System.out.println(counter + " equal");
+                        if(lastPage==0){
+                            System.out.println("last page equals zero");
+                            mListener.moreAtBottom(false);
+                        }else{
+                            System.out.println("last page does NOT equal zero");
+                            mListener.moreAtBottom(true);
+                        }
+                    }
+                    if(counter<maxCounter){
+                        System.out.println(counter + " not exceeded");
+                            mListener.moreAtBottom(true);
+                    }else{
+                        System.out.println(counter + " exceeded");
+                            mListener.moreAtBottom(false);
+
+                    }
                 }
 
-                if (mListener != null) {
-                    mListener.endReached(counter);
-                }
             }
         });
 
         return rootView;
+    }
+
+    void setCountSizes(int len){
+
+        if(len > 200){
+
+            maxCounter = len/66;  //I though 66 was a long enough length for scrolling through many pictures
+            picturesPerPage = 66;
+
+        }else if(len > 100){
+
+            maxCounter = len/45;
+            picturesPerPage = 45;
+
+        }else{
+            maxCounter = 1;
+            picturesPerPage = len;
+
+        }
+        lastPage = len - maxCounter * picturesPerPage;
+
+        System.out.println("maxCounter= "+maxCounter+"\nblockSize= "+picturesPerPage+
+            "\nlastPage= "+lastPage);
+
     }
 
 
@@ -135,19 +159,14 @@ public class PicturesFragment extends Fragment {
 
     public void initialSendToFragment(TopLevel topLevel){
 
-        imageUrlsMain = imageArrayMaker.makeImageArrayList(topLevel);
-        System.out.println(imageUrlsMain.get(0));
-
-        //load into pictures 0-29 into displaying array
-        loadArray(0,picturesPerPage);
-        //spinner.setVisibility(View.GONE);
-        if (mListener != null) {
-            mListener.stopProgressBar();
-        }
+        task = new ImageArrayMaker(topLevel,this);
+        task.execute();
     }
 
 
     public void loadArray(int start, int end){
+
+        System.out.println("Loading array from "+start+" till "+end);
 
         for(int i=start;i<end;i++){
             imageUrls.add(imageUrlsMain.get(i));
@@ -158,22 +177,18 @@ public class PicturesFragment extends Fragment {
     public void addToArray(){
 
         System.out.println("Counter: "+counter);
-        switch(counter) {
-            case 1:
-                loadArray(0, picturesPerPage);
-                break;
-            case 2:
-                loadArray(picturesPerPage, picturesPerPage * 2);
-                break;
-            case 3:
-                loadArray(picturesPerPage * 2, picturesPerPage * 3);
-                break;
-            case 4:
-                loadArray(picturesPerPage * 3, picturesPerPage * 4);
-                break;
-            case 5:
-                loadArray(picturesPerPage * 4, picturesPerPage * 5);
-                break;
+
+        int mulCountBlock = counter*picturesPerPage;
+
+        if(counter<maxCounter){
+
+            loadArray(mulCountBlock,mulCountBlock+picturesPerPage);
+
+        }else if(counter == maxCounter){
+            loadArray(mulCountBlock,mulCountBlock+lastPage);
+
+        }else{
+            System.out.println("Serious error");
         }
 
     }
@@ -182,16 +197,32 @@ public class PicturesFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+        if(task!=null){//cancel asynctask
+                task.cancel(true);
+        }
     }
 
     public interface OnPictureFragmentInteractionListener {
         // TODO: Update argument type and name
         void onFragmentInteraction(String message);
-        void endReached(int count);
-        void arrayEmpty();
+        void moreAtBottom(boolean value);
         void stopProgressBar();
         void startProgressBar();
         void startDownloadFragment(SingleImage image);
+    }
+
+    @Override
+    public void processFinish(List<SingleImage> imageUrls){
+        imageUrlsMain = imageUrls;
+
+        System.out.println("length is: "+imageUrlsMain.size());
+        setCountSizes(imageUrlsMain.size());
+        //load into pictures 0-29 into displaying array
+        loadArray(0,picturesPerPage);
+        //spinner.setVisibility(View.GONE);
+        if (mListener != null) {
+            mListener.stopProgressBar();
+        }
     }
 
 }

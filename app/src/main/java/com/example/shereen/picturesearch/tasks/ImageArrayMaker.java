@@ -1,5 +1,8 @@
 package com.example.shereen.picturesearch.tasks;
 
+import android.os.AsyncTask;
+import android.widget.Toast;
+
 import com.example.shereen.picturesearch.entity.SingleImage;
 import com.example.shereen.picturesearch.gson.Photo;
 import com.example.shereen.picturesearch.gson.TopLevel;
@@ -7,17 +10,36 @@ import com.example.shereen.picturesearch.gson.TopLevel;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ImageArrayMaker {
+public class ImageArrayMaker extends AsyncTask<Void,Void,Void> {
 
     List<SingleImage> imageUrls = new ArrayList<>();
+    TopLevel topLevel;
+    public AsyncResponse delegate = null;
 
 
-    public ImageArrayMaker(){
+
+    public ImageArrayMaker(TopLevel topLevel,AsyncResponse delegate){
+        this.topLevel = topLevel;
+        this.delegate = delegate;
+    }
+
+    @Override
+    protected Void doInBackground(Void... params) {
+
+        makeImageArrayList();
+        return null;
+    }
+
+    @Override
+    protected void onPostExecute(Void aVoid) {
+        super.onPostExecute(aVoid);
+        System.out.println("Done execution");
+        delegate.processFinish(imageUrls);
 
     }
 
 
-    public List<SingleImage> makeImageArrayList(TopLevel topLevel){
+    public void makeImageArrayList(){
 
         int len = topLevel.getPhotos().getPhoto().length;
         System.out.println("length"+len);
@@ -38,12 +60,6 @@ public class ImageArrayMaker {
             singleImage.setTitle(photo.getTitle());
             imageUrls.add(singleImage);
         }
-
-//        for (SingleImage image: imageUrls){
-//            System.out.println(image);
-//        }
-
-        return imageUrls;
 
     }
 

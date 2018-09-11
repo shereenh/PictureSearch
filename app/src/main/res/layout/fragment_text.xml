@@ -24,7 +24,7 @@
         android:padding="10dp"
         android:layout_margin="70dp"
         android:textStyle="bold"
-        android:background="@color/flickrDGray"
+        android:background="@drawable/circle"
         android:gravity="center"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

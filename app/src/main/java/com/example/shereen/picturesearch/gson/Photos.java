@@ -1,5 +1,6 @@
 package com.example.shereen.picturesearch.gson;
 
+
 public class Photos {
 
     int page;

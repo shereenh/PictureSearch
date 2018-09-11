@@ -2,13 +2,16 @@ package com.example.shereen.picturesearch;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.os.AsyncTask;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,6 +22,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -33,6 +37,7 @@ import com.example.shereen.picturesearch.fragments.PicturesFragment;
 import com.example.shereen.picturesearch.fragments.TextFragment;
 import com.example.shereen.picturesearch.gson.TopLevel;
 import com.example.shereen.picturesearch.rest.RestClient;
+import com.example.shereen.picturesearch.tasks.SaveToHistory;
 import com.example.shereen.picturesearch.tasks.SaveToGallery;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -46,12 +51,17 @@ public class MainActivity extends AppCompatActivity implements
 
     private Disposable disposable;
     private static final String TAG = MainActivity.class.getSimpleName();
-    private static final String SEARCH_PREFERENCES = "search_content";
+    public static final String SEARCH_PREFERENCES = "search_content";
     final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 9078;
-    Button moreButton,historyButton;
+    ImageButton moreButton;
     ImageButton searchButton;
     EditText searchText;
     TopLevel globalTopLevel;
+    String prevSearch="gaga";
+
+    String search;
+
+    LinearLayout historyButton;
 
     PicturesFragment picturesFragment;
     TextFragment textFragment;
@@ -64,6 +74,11 @@ public class MainActivity extends AppCompatActivity implements
     Bitmap bitmapImage;
 
     SingleImage zoomImage;
+
+    boolean isConnected;
+
+    SaveToGallery saveGalleryTask;
+    SaveToHistory saveHistoryTask;
 
 
     @Override
@@ -78,6 +93,8 @@ public class MainActivity extends AppCompatActivity implements
                 .add(R.id.frameLayout, textFragment)
                 .commit();
 
+        checkNetwork(true);
+
         spinner = findViewById(R.id.progressBar1);
         spinner.setVisibility(View.GONE);
 
@@ -90,7 +107,8 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public void onClick(android.view.View v) {
                  //search for given input
-                search();
+
+                 searchAction();
 
             }
         });
@@ -109,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 boolean handled = false;
                 if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                    search();
+                    searchAction();
                     handled = true;
                 }
                 return handled;
@@ -131,6 +149,7 @@ public class MainActivity extends AppCompatActivity implements
 
             }
         });
+        moreButton.setVisibility(View.INVISIBLE);
 
         historyButton = findViewById(R.id.historyButton);
         historyButton.setOnClickListener(new android.view.View.OnClickListener() {
@@ -151,30 +170,85 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
-    void search(){
+    void checkNetwork(boolean showDialog){
+        ConnectivityManager cm =
+                (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        isConnected = activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
+        if(!isConnected && showDialog){
+                alertToConnect();
+        }
+    }
+
+    void alertToConnect(){
+
+        AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+        alertDialog.setTitle(getResources().getString(R.string.no_network));
+        alertDialog.setMessage(getResources().getString(R.string.no_network_message));
+        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+        alertDialog.show();
+
+    }
+
+    void searchAction(){
 
         //hide keyboard
         inputManager.hideSoftInputFromWindow((null == getCurrentFocus()) ? null : getCurrentFocus().getWindowToken(),
                 InputMethodManager.HIDE_NOT_ALWAYS);
-        String search = searchText.getText().toString();
+        search = searchText.getText().toString();
         print(search);
+        print(prevSearch);
+        if(!search.equals(prevSearch)){
 
-        if(search.isEmpty()){
+            checkNetwork(false);
 
-            Toast.makeText(getApplicationContext(), getResources().getString(R.string.empty_search)
-                    , Toast.LENGTH_LONG).show();
+            if(!isConnected){
+                alertToConnect();
+
+            }else if(search.isEmpty()){
+
+                Toast.makeText(getApplicationContext(), getResources().getString(R.string.empty_search)
+                        , Toast.LENGTH_LONG).show();
+            }
+            else{
+                //spinner.setVisibility(View.VISIBLE);
+                //addToSearch(search);
+                saveHistoryTask = new SaveToHistory(this,search,spinner);
+                saveHistoryTask.execute();
+                makeRestCall(search);
+            }
+
+            prevSearch = search;
+
         }else{
-            setSearchHistory(search);
-            spinner.setVisibility(View.VISIBLE);
-            makeRestCall(search);
+            //Displayed if user presses search again
+            Toast.makeText(getApplicationContext(),
+                    getResources().getString(R.string.same_search)+" "+prevSearch
+                    , Toast.LENGTH_LONG).show();
         }
 
+
+
     }
+
+
 
     void changMoreClick(boolean b){
 
         moreButton.setClickable(b);
         moreButton.setEnabled(b);
+        if(b){
+            moreButton.setBackgroundResource(R.drawable.add);
+        }else{
+            moreButton.setBackgroundResource(R.drawable.add_dis);
+        }
 
     }
 
@@ -194,12 +268,26 @@ public class MainActivity extends AppCompatActivity implements
                                 globalTopLevel = topLevel;
                                 picturesFragment = new PicturesFragment();
                                 new Thread(new Runnable() { @Override public void run() {
-                                    print("Gonna destroy 1111");
                                     Glide.get(getApplicationContext()).clearDiskCache();
                                 } }).start();
-                                getSupportFragmentManager().beginTransaction()
-                                        .replace(R.id.frameLayout, picturesFragment)
-                                        .commit();
+                                if(topLevel.getStat().equals("ok")){
+                                    if (topLevel.getPhotos().getTotal().equals("0")){
+                                        Toast.makeText(getApplicationContext(),
+                                                getResources().getString(R.string.not_found)+" "+searchContent
+                                                , Toast.LENGTH_LONG).show();
+                                        stopProgressBar();
+                                    }else{
+                                    getSupportFragmentManager().beginTransaction()
+                                            .replace(R.id.frameLayout, picturesFragment)
+                                            .commit();
+                                    }
+                                }else{
+                                    Toast.makeText(getApplicationContext(),
+                                            getResources().getString(R.string.wrong)
+                                            , Toast.LENGTH_LONG).show();
+                                    stopProgressBar();
+                                }
+
                             }
                         },
                         new Consumer<Throwable>() {
@@ -207,8 +295,9 @@ public class MainActivity extends AppCompatActivity implements
                             public void accept(Throwable t) throws Exception {
                                 Log.i(TAG, "RxJava2, HTTP Error: " + t.getMessage());
                                 Toast.makeText(getApplicationContext(),
-                                        getResources().getString(R.string.not_found)+" "+searchContent
+                                        getResources().getString(R.string.connection_error)
                                         , Toast.LENGTH_LONG).show();
+                                stopProgressBar();
                             }
                         }
                 );
@@ -223,48 +312,32 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     protected void onDestroy() {
+        super.onDestroy();
         if (disposable != null && !disposable.isDisposed()) {
             disposable.dispose();
         }
         Glide.get(MainActivity.this).clearMemory();
+        if(saveGalleryTask !=null){//cancel asynctask
+            saveGalleryTask.cancel(true);
+        }
+        if(saveHistoryTask !=null){//cancel asynctask
+            saveHistoryTask.cancel(true);
+        }
 
-        AsyncTask.execute(new Runnable() {
-            @Override
-            public void run() {
-                print("Gonna destroy ");
-            }
-        });
-
-        new Thread(new Runnable() { @Override public void run() {
-            print("Gonna destroy 1");
-        } }).start();
-
-        super.onDestroy();
     }
 
     public void onFragmentInteraction(String message){
         if(message.equals("send toplevel")){
             if(picturesFragment!=null){
                 picturesFragment.initialSendToFragment(globalTopLevel);
+                moreButton.setVisibility(View.VISIBLE);
             }
         }
     }
 
-    public void endReached(int count){
+    public void moreAtBottom(boolean value){
 
-        if(count<6){
-            changMoreClick(true);
-
-        }else{
-            changMoreClick(false);
-        }
-
-    }
-
-    public void arrayEmpty(){
-
-        Toast.makeText(getApplicationContext(), getResources().getString(R.string.no_more_results)
-                , Toast.LENGTH_LONG).show();
+            changMoreClick(value);
 
     }
 
@@ -337,8 +410,8 @@ public class MainActivity extends AppCompatActivity implements
                     MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
         }else{
 
-            SaveToGallery saver = new SaveToGallery(this,image);
-            saver.execute();
+            saveGalleryTask = new SaveToGallery(this,image);
+            saveGalleryTask.execute();
         }
 
     }
@@ -369,16 +442,6 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
-    void setSearchHistory(String newSearch){
-        String search_history;
-        SharedPreferences mPreferences = this.getSharedPreferences("search_history", Context.MODE_PRIVATE);
-        search_history = mPreferences.getString(SEARCH_PREFERENCES, "flickr");
-
-        SharedPreferences.Editor editor = mPreferences.edit();
-        editor.putString(SEARCH_PREFERENCES,search_history+","+newSearch);
-        editor.commit();
-
-    }
 
     void clearSearch(){
         String search_history = "flickr";
@@ -391,7 +454,6 @@ public class MainActivity extends AppCompatActivity implements
 
     public void searchFromHistory(String search){
 
-        setSearchHistory(search);
         spinner.setVisibility(View.VISIBLE);
         makeRestCall(search);
 
@@ -404,6 +466,5 @@ public class MainActivity extends AppCompatActivity implements
     public void startProgressBar(){
         spinner.setVisibility(View.VISIBLE);
     }
-
 
 }

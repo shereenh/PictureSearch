@@ -115,6 +115,11 @@ public class HistoryFragment extends Fragment {
             }
         });
 
+        System.out.println("history searches:");
+        for(String i: historySearches){
+            System.out.println(i);
+        }
+
         return rootView;
     }
 
